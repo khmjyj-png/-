@@ -1,8 +1,7 @@
-// ⭐⭐ 🚨 여기를 1단계에서 복사한 '웹 앱 URL'로 정확하게 교체해야 합니다! 🚨 ⭐⭐
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDVhk-tKg_VjC0BeWdMsa7hmhEugjyQo5YHXxS5OC9qsECuBAjeDrdtVAPX4l9TNuqzw/exec'; 
+// ⭐⭐ 🚨 여기에 1단계에서 새로 받은 '웹 앱 URL'을 정확하게 교체해야 합니다! 🚨 ⭐⭐
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwkgYUVvTK6aeuyBGIIfBabrenzSv9J5XehIpBK55UuFSSsoiEn9mv9MKfR6rEvKnlA/exec'; 
 
 const submitBtn = document.getElementById('submitBtn');
-const emotionLog = document.getElementById('emotionLog');
 const thermometerFill = document.getElementById('thermometerFill');
 const statusText = document.getElementById('statusText');
 const missionText = document.getElementById('missionText');
@@ -45,7 +44,7 @@ submitBtn.addEventListener('click', async () => {
 
         if (response.ok) {
             document.getElementById('message').textContent = `✅ ${name || '익명'}님의 감정이 기록되었습니다!`;
-            fetchAndDisplayData(); 
+            fetchAndDisplayData(); // 화면 업데이트
         } else {
             document.getElementById('message').textContent = '❌ 데이터 기록 실패: 서버 응답 오류';
             console.error('POST 실패 응답:', await response.text());
@@ -66,10 +65,8 @@ async function fetchAndDisplayData() {
     try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllData`); 
         
-        // 🔥 CORS 우회 및 TEXT 응답 처리를 위해 반드시 .text() 후 JSON.parse() 사용
-        const textData = await response.text(); 
-        
-        // Apps Script에서 비어있는 배열을 반환할 때 발생할 수 있는 오류를 방지
+        // 🔥 TEXT 응답을 받고 수동으로 JSON 파싱 (통신 오류 방지)
+        const textData = await response.text();
         let allData;
         try {
             allData = JSON.parse(textData);
@@ -90,14 +87,12 @@ function updateDisplay(data) {
     if (data.length === 0) {
         statusText.textContent = '아직 기록된 학생 데이터가 없습니다.';
         thermometerFill.style.height = '0%';
-        if (emotionLog) emotionLog.innerHTML = ''; // 로그가 있다면 초기화
         missionText.textContent = '지금 바로 첫 기록을 남겨보세요!';
         return;
     }
 
-    // Level 값이 숫자인지 확인하고, 아니면 0으로 처리하여 계산 오류 방지
+    // Level 값이 숫자인지 확인하고 계산 오류 방지
     const totalLevel = data.reduce((sum, entry) => {
-        // Apps Script에서 parseInt가 적용되었어도, 다시 안전하게 확인
         const level = (typeof entry.level === 'number' && !isNaN(entry.level)) ? entry.level : 0;
         return sum + level;
     }, 0);
@@ -124,13 +119,6 @@ function updateDisplay(data) {
     }
     statusText.textContent = statusMsg;
     missionText.textContent = missionMsg;
-    
-    // 로그 표시 (emotionLog가 존재하는 경우에만 실행)
-    if (emotionLog) {
-        emotionLog.innerHTML = data.slice(-5).reverse().map(entry => 
-            `<li>[${new Date(entry.timestamp).toLocaleTimeString('ko-KR')}] ${entry.name || '익명'}: ${entry.level}점. (키워드: ${entry.keywords})</li>`
-        ).join('');
-    }
 }
 
 // 페이지 로드 시 초기 데이터 불러오기
